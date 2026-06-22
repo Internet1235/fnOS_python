@@ -1,0 +1,52 @@
+name: Build Python 3.12
+
+on:
+  repository_dispatch:
+  workflow_dispatch:
+  push:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@main
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Download Python
+      run: |
+        mkdir -p python
+        cd python
+        wget https://www.python.org/ftp/python/3.12.13/Python-3.12.13.tar.xz
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+        
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and push Docker images
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: Dockerfile
+        platforms: linux/amd64,linux/arm64
+        build-args: |
+          PYTHON_VERSION=3.12.13
+          PYTHON_DIR=python312
+        push: true
+        tags: ghcr.io/internet1235/python:3.12
